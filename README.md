@@ -6,7 +6,8 @@ Has some additional features:
  * Upper bounds for speed
  * Contextual end-game messages
  * Different x/y speeds to compensate for terminal ratios
+ * Better end game messages
  
 To implement/to fix:
- * (0, 0) displaying 'o' snake body part when picking up trophy
+ * ~~(0, 0) displaying 'o' snake body part when picking up trophy~~ Fixed
  * Add timer to despawn/fetch new trophy
