@@ -129,11 +129,11 @@ int main() {
         attroff(COLOR_PAIR(3));       
 
         attron(COLOR_PAIR(2));
-        for(int i = 1; i < length ; i++)        // Printing the body
+        for(int i = 1; i < length ; i++)        // Printing the body 
             mvprintw(body[i][0], body[i][1], "o");
+
         mvprintw(head[0], head[1], "@");        // Printing the head
         attroff(COLOR_PAIR(2));
-        move(LINES/2, COLS/2 - 20);
 
         // Change x/y direction based on user input
         switch(ch) {
@@ -190,6 +190,10 @@ int main() {
                 runningIntoSelfFlag = 1;
             
             if( head[0] == trophy[0] && head[1] == trophy[1] ) {
+                for(int j = 0; j < trophyValue; j++) {
+                    body[length + j][0] = body[length - 1][0];
+                    body[length + j][1] = body[length - 1][1];
+                }
                 length += trophyValue;
                 newTrophy(trophy);
             }
@@ -212,24 +216,28 @@ int main() {
 
         // If head hits border, end the game.
         if( head[0] == 0 || head[0] >= LINES - 1 || head[1] == 0 || head[1] >= COLS - 1 )  
-            endGame("You hit a wall :( Press any key to exit \n");
+            endGame("You hit a wall :(");
         // If user reverses direction, end the game. 
         if( reverseFlag )
-            endGame("You tried to reverse direction :( Press any key to exit \n");
+            endGame("You tried to reverse direction :(");
         if( runningIntoSelfFlag )
-            endGame("You ran into your body :( Press any key to exit \n");
+            endGame("You ran into your body :(");
         if( length >= winThreshold )
-            endGame("You win!!! :) Press any key to exit \n");
+            endGame("You win!!! :)");
     }
     endwin();
     return 0;
 }
 
+// Print centered message and kill snake
 void endGame(char * exitMessage) {
-    clear();
-    printf("%s", exitMessage);
+    char * pressAnyKey = "Press any key to exit...";       // Don't repeat yourself
+    mvprintw(LINES/2, (COLS - strlen(exitMessage))/2, exitMessage);
+    mvprintw((LINES/2)+1, (COLS - strlen(pressAnyKey))/2, pressAnyKey);
     alive = 0;
+    refresh();
     getchar();
+    clear();
     return;
 }
 
