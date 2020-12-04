@@ -1,0 +1,247 @@
+/* CS 355 Systems Programming 
+ * Final Project: Snake Game
+ * Alexandra Iaquessa and Kara Martin
+ *
+ * use 'sudo apt-get install libncurses5 libncurses5-dev' if Google Cloud Shell can't find curses.h
+ * compile with '-lcurses'
+ * 
+ * Intermediate Deliverable Date:   11/23/2020
+ * Final Deliverable Date:          12/04/2020
+ * 
+ * Final Deliverable Functionality:
+ * [✓] Snake Pit
+ *      [✓]  The snake pit is the area where the snake can move.
+ *      [✓]  The snake pit must utilize all available space of the current terminal window.
+ *      [✓]  There must be a visible border delineating the snake pit.
+ * [✓] Snake
+ *      [✓]  Initial length 3 (can easily change, leave as 5 for debugging)
+ *      [✓]  Random initial direction.
+ *      [✓]  4 arrow keys change direction.
+ *      [✓]  Speed proportional to length.
+ * [] Trophies
+ *      [✓] Represented from random digit from 1-9.
+ *      [✓] Exactly 1 trophy in pit at any moment.
+ *      [✓] Snake eats trophy -> length += trophy #
+ *      [] Trophy expires after random interval from 1-9 seconds
+ *      [✓] New trophy shown at random location on the screen after eaten/expires
+ * [✓] Gameplay
+ *      [✓] Snake dies on running into border
+ *      [✓] Snake dies on running into itself
+ *      [✓] User tries to reverse direction
+ *      [✓] User wins when length >= border perimeter / 2
+ */
+
+#include <curses.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <signal.h>
+
+int alive = 1;
+int reverseFlag = 0;                            // Checks if user tried to reverse direction
+int runningIntoSelfFlag = 0;                    // Checks if head hits body
+int length;
+int addToLength = 0;
+int winThreshold;
+int xdir;                                       // Up or Down
+int ydir;                                       // Left or Right (so starting direction is right)
+char trophyCh[1];
+int trophyValue;
+
+void endGame(char *);
+void newTrophy();
+
+int main() {
+    // Curses setup
+    initscr();                                  // initialize the curses library
+    clear();                                    // clear the screen
+    curs_set(0);                                // hide the cursor
+    noecho();                                   // do not echo the user input to the screen
+    keypad(stdscr,TRUE);                        // enables working with the arrow keys
+    nodelay(stdscr, TRUE);                      // Makes getch a non-blocking call
+    srand(time(NULL));                          // RNG for trophies   
+    int head[2] = {LINES/2,COLS/2};             // Snake setup
+    int body[500][2] = {0};
+    body[0][0] = LINES/2;
+    body[0][1] = COLS/2;
+    int trophy[2] = {0};
+
+    length = 3;                                 // Starting length of snake
+    winThreshold = LINES + COLS - 2;            // Perimeter = LINES*2 + COLS*2 - 4 as corners are double counted
+                                                // When length > Perimeter / 2, user wins. 
+    move(LINES/2, COLS/2);                      // Start in middle (add random starting direction later)
+    start_color();			                    // Color the board
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);     // Border Color
+    init_pair(2, COLOR_GREEN, COLOR_BLACK);     // Snake Color
+    init_pair(3, COLOR_YELLOW, COLOR_BLACK);    // Trophy Color       
+
+    newTrophy(trophy);
+    
+    int initialDirection = rand() % 4;          // Generate a random number from 0-3 to determine starting direction
+    switch(initialDirection) {
+        case 0:                                 // Up
+            xdir = -1;
+            ydir = 0;
+            body[1][0] = (LINES/2) + 1;
+            body[1][1] = COLS/2;
+            body[2][0] = (LINES/2) + 2;
+            body[2][1] = COLS/2;
+            break;
+        case 1:                                 // Down
+            xdir = 1;
+            ydir = 0;
+            body[1][0] = (LINES/2) - 1;
+            body[1][1] = COLS/2;
+            body[2][0] = (LINES/2) - 2;
+            body[2][1] = COLS/2;
+            break;
+        case 2:                                 // Left
+            xdir = 0;
+            ydir = -1;
+            body[1][0] = LINES/2;
+            body[1][1] = (COLS/2) + 1;
+            body[2][0] = LINES/2;
+            body[2][1] = (COLS/2) + 2;
+            break;
+        case 3:                                 // Right, default
+        default:
+            xdir = 0;
+            ydir = 1;
+            body[1][0] = LINES/2;
+            body[1][1] = (COLS/2) - 1;
+            body[2][0] = LINES/2;
+            body[2][1] = (COLS/2) - 2;
+            break;
+    }
+
+    // Main game loop
+    while(alive) {
+        clear();
+        attron(COLOR_PAIR(1));                  // Color border in.
+        border('|', '|', '-', '-', '*', '*', '*', '*'); // Border style
+        attroff(COLOR_PAIR(1));        
+        int ch = getch();
+
+        attron(COLOR_PAIR(3));                  // Print trophy
+        sprintf(&trophyCh[0], "%d", trophyValue);           
+        mvprintw(trophy[0], trophy[1], trophyCh);
+        attroff(COLOR_PAIR(3));       
+
+        attron(COLOR_PAIR(2));
+        for(int i = 1; i < length ; i++)             // Printing the body
+            mvprintw(body[i][0], body[i][1],"o");
+        addToLength = 0;
+        mvprintw(head[0], head[1],"@");         // Printing the head
+        attroff(COLOR_PAIR(2));
+        move(LINES/2, COLS/2 - 20);
+
+        // Change x/y direction based on user input
+        switch(ch) {
+            case KEY_UP:
+                if( xdir == 1 ) 
+                    reverseFlag = 1;
+                else {
+                    xdir = -1;
+                    ydir = 0;                
+                }
+                break;
+            case KEY_DOWN:    
+                if( xdir == -1 )
+                    reverseFlag = 1;
+                else {  
+                    xdir = 1;
+                    ydir = 0;
+                }
+                break;
+            case KEY_LEFT:     
+                if( ydir == 1 )
+                    reverseFlag = 1;
+                else { 
+                    xdir = 0;
+                    ydir = -1;
+                }
+                break;
+            case KEY_RIGHT:
+                if( ydir == -1 )
+                    reverseFlag = 1;
+                else {
+                    xdir = 0;
+                    ydir = 1;
+                }
+                break;
+            case 'x':
+            case 'X': 
+                endwin();
+                return 0;
+            default:              
+                break;
+        }
+
+        // New snake head and body part positions
+        head[0] += xdir;
+        head[1] += ydir;
+
+        for(int i = length - 1; i > 0 ; i--)       // Snake body values
+        {
+            body[i][0] = body[i-1][0];
+            body[i][1] = body[i-1][1];
+
+            if( head[0] == body[i][0] && head[1] == body[i][1] )
+                runningIntoSelfFlag = 1;
+            
+            if( head[0] == trophy[0] && head[1] == trophy[1] ) {
+                addToLength = trophyValue;
+                newTrophy(trophy);
+            }
+        }
+        length += addToLength;
+
+        body[0][0] = head[0];
+        body[0][1] = head[1];
+
+        refresh(); 
+        if( xdir == 0 )                                 // Speed proportional to length, there's usually anywhere from 3-10x more columns than lines, so account for that
+            if( length <= 150 )
+                usleep(200000 - (length * 1000));       // Moving left or right, speed should go from ~200k to ~50k
+            else
+                usleep(50000);
+        else if( ydir == 0 )
+            if( length <= 150 )
+                usleep(300000 - (length * 1000));       // Moving up or down, speed should go from ~300k to ~150k
+            else
+                usleep(150000);
+
+        // If head hits border, end the game.
+        if( head[0] == 0 || head[0] >= LINES - 1 || head[1] == 0 || head[1] >= COLS - 1 )  
+            endGame("You hit a wall :( Press any key to exit \n");
+        // If user reverses direction, end the game. 
+        if( reverseFlag )
+            endGame("You tried to reverse direction :( Press any key to exit \n");
+        if( runningIntoSelfFlag )
+            endGame("You ran into your body :( Press any key to exit \n");
+        if( length >= winThreshold )
+            endGame("You win!!! :) Press any key to exit \n");
+    }
+    endwin();
+    return 0;
+}
+
+void endGame(char * exitMessage) {
+    clear();
+    printf("%s", exitMessage);
+    alive = 0;
+    getchar();
+    return;
+}
+
+void newTrophy(int * t, int ** b) {
+    trophyValue = ( rand() % 9 ) + 1;  // Generate a random number from 1-9 to determine trophy value
+    int ch;
+    do {
+        t[0] = ( rand() % (LINES - 2) ) + 1;                    // Make sure the trophy is in-bounds
+        t[1] = ( rand() % (COLS - 2) ) + 1;
+        ch = mvinch(t[0], t[1]) & A_CHARTEXT;
+    } while(ch == 111 || ch == 64);                             // Loop until the character at (t[0], t[1]) isn't 'o' or '@'
+}
