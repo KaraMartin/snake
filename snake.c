@@ -46,7 +46,6 @@ int length;
 int winThreshold;
 int xdir;                                       // Up or Down
 int ydir;                                       // Left or Right (so starting direction is right)
-char trophyCh[1];
 int trophyValue;
 
 void endGame(char *);
@@ -70,7 +69,7 @@ int main() {
     length = 3;                                 // Starting length of snake
     winThreshold = LINES + COLS - 2;            // Perimeter = LINES*2 + COLS*2 - 4 as corners are double counted
                                                 // When length > Perimeter / 2, user wins. 
-    move(LINES/2, COLS/2);                      // Start in middle (add random starting direction later)
+    move(LINES/2, COLS/2);                      // Start in middle 
     start_color();			                    // Color the board
     init_pair(1, COLOR_WHITE, COLOR_BLACK);     // Border Color
     init_pair(2, COLOR_GREEN, COLOR_BLACK);     // Snake Color
@@ -117,22 +116,20 @@ int main() {
 
     // Main game loop
     while(alive) {
-        clear();
-        attron(COLOR_PAIR(1));                  // Color border in.
+        erase();
+        attron(COLOR_PAIR(1));                          // Color border in.
         border('|', '|', '-', '-', '*', '*', '*', '*'); // Border style
         attroff(COLOR_PAIR(1));        
         int ch = getch();
 
-        attron(COLOR_PAIR(3));                  // Print trophy
-        sprintf(&trophyCh[0], "%d", trophyValue);           
-        mvprintw(trophy[0], trophy[1], trophyCh);
+        attron(COLOR_PAIR(3));                          // Print trophy
+        mvprintw(trophy[0], trophy[1], "%d", trophyValue);
         attroff(COLOR_PAIR(3));       
 
         attron(COLOR_PAIR(2));
-        for(int i = 1; i < length ; i++)        // Printing the body 
+        for(int i = 1; i < length ; i++)                // Printing the body 
             mvprintw(body[i][0], body[i][1], "o");
-
-        mvprintw(head[0], head[1], "@");        // Printing the head
+        mvprintw(head[0], head[1], "@");                // Printing the head
         attroff(COLOR_PAIR(2));
 
         // Change x/y direction based on user input
@@ -203,26 +200,26 @@ int main() {
         body[0][1] = head[1];
 
         refresh(); 
-        if( xdir == 0 )                                 // Speed proportional to length, there's usually anywhere from 3-10x more columns than lines, so account for that
+        if( xdir == 0 ) {                               // Speed proportional to length, there's usually anywhere from 3-10x more columns than lines, so account for that
             if( length <= 150 )
                 usleep(200000 - (length * 1000));       // Moving left or right, speed should go from ~200k to ~50k
             else
                 usleep(50000);
-        else if( ydir == 0 )
+        }
+        else if( ydir == 0 ) {
             if( length <= 150 )
                 usleep(300000 - (length * 1000));       // Moving up or down, speed should go from ~300k to ~150k
             else
                 usleep(150000);
+        }
 
-        // If head hits border, end the game.
         if( head[0] == 0 || head[0] >= LINES - 1 || head[1] == 0 || head[1] >= COLS - 1 )  
-            endGame("You hit a wall :(");
-        // If user reverses direction, end the game. 
-        if( reverseFlag )
+            endGame("You hit a wall :(");               // If head hits border, end the game.
+        if( reverseFlag )                               // If snake reverses direction, end the game. 
             endGame("You tried to reverse direction :(");
-        if( runningIntoSelfFlag )
+        if( runningIntoSelfFlag )                       // If snake runs into itself, end the game. 
             endGame("You ran into your body :(");
-        if( length >= winThreshold )
+        if( length >= winThreshold )                    // If the length is longer than the threshold, end the game.
             endGame("You win!!! :)");
     }
     endwin();
