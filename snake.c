@@ -43,7 +43,6 @@ int alive = 1;
 int reverseFlag = 0;                            // Checks if user tried to reverse direction
 int runningIntoSelfFlag = 0;                    // Checks if head hits body
 int length;
-int addToLength = 0;
 int winThreshold;
 int xdir;                                       // Up or Down
 int ydir;                                       // Left or Right (so starting direction is right)
@@ -130,10 +129,9 @@ int main() {
         attroff(COLOR_PAIR(3));       
 
         attron(COLOR_PAIR(2));
-        for(int i = 1; i < length ; i++)             // Printing the body
-            mvprintw(body[i][0], body[i][1],"o");
-        addToLength = 0;
-        mvprintw(head[0], head[1],"@");         // Printing the head
+        for(int i = 1; i < length ; i++)        // Printing the body
+            mvprintw(body[i][0], body[i][1], "o");
+        mvprintw(head[0], head[1], "@");        // Printing the head
         attroff(COLOR_PAIR(2));
         move(LINES/2, COLS/2 - 20);
 
@@ -192,11 +190,10 @@ int main() {
                 runningIntoSelfFlag = 1;
             
             if( head[0] == trophy[0] && head[1] == trophy[1] ) {
-                addToLength = trophyValue;
+                length += trophyValue;
                 newTrophy(trophy);
             }
         }
-        length += addToLength;
 
         body[0][0] = head[0];
         body[0][1] = head[1];
