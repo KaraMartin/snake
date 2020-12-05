@@ -230,7 +230,6 @@ void endGame(char * exitMessage) {                          // Print centered me
     refresh();
     getchar();
     clear();
-    return;
 }
 
 void newTrophy() {                                          // Generate next trophy and set alarm for next one
