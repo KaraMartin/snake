@@ -10,4 +10,4 @@ Has some additional features:
  
 To implement/to fix:
  * ~~(0, 0) displaying 'o' snake body part when picking up trophy~~ Fixed
- * Add timer to despawn/fetch new trophy
+ * ~~Add timer to despawn/fetch new trophy~~ Fixed
