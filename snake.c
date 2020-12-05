@@ -55,6 +55,7 @@ void newTrophy();
 int main() {
     initscr();                                              // initialize the curses library
     clear();                                                // clear the screen
+    printf("%d LINES %d COLS", LINES, COLS);
     curs_set(0);                                            // hide the cursor
     noecho();                                               // do not echo the user input to the screen
     keypad(stdscr,TRUE);                                    // enables working with the arrow keys
@@ -67,6 +68,14 @@ int main() {
 
     length = 3;                                             // Starting length of snake
     winThreshold = LINES + COLS - 2;                        // Perimeter = LINES*2 + COLS*2 - 4 as corners are double counted
+    int biggerTerminalSpeedBonus;
+    if(COLS > 200)                                          // Max columns possible is 244, compensate for bigger windows
+        biggerTerminalSpeedBonus = 50000;
+    else if(COLS > 100)
+        biggerTerminalSpeedBonus = 25000;
+    else 
+        biggerTerminalSpeedBonus = 0;
+
     move(LINES/2, COLS/2);                                  // Start in middle 
     start_color();			                                // Color the board
     init_pair(1, COLOR_WHITE, COLOR_BLACK);                 // Border Color
@@ -77,7 +86,7 @@ int main() {
     alarm(trophyValue);
     
     int initialDirection = rand() % 4;                      // Generate a random number from 0-3 to determine starting direction
-    switch(initialDirection) {
+    switch(initialDirection) {                              // Set initial direction and the locations of first 2 body parts 
         case 0:                                             // Up
             xdir = -1;
             ydir = 0;
@@ -197,16 +206,16 @@ int main() {
         refresh(); 
 
         if( xdir == 0 ) {                                   // Speed proportional to length
-            if( length <= 100 )
-                usleep(150000 - (length * 1000));           // Moving left or right, speed should go from ~150k to ~50k
+            if( length <= 50 )                              // Moving left or right, speed should go from ~150k to ~50k (on small terminal)
+                usleep(153000 - (length * 1000) - biggerTerminalSpeedBonus);           
             else
                 usleep(50000);
         }
-        else if( ydir == 0 ) {
-            if( length <= 100 )                             // There's usually anywhere from 3-10x more columns than lines, so account for that
-                usleep(225000 - (length * 1000));           // Moving up or down, speed should go from ~225k to ~125k
+        else if( ydir == 0 ) {                              // There's usually anywhere from 3-10x more columns than lines, so account for that
+            if( length <= 50 )                              // Moving up or down, speed should go from ~225k to ~125k (on small terminal)
+                usleep(228000 - (length * 1000) - (2 * biggerTerminalSpeedBonus));           
             else
-                usleep(125000);
+                usleep(75000);
         }
 
         if( head[0] == 0 || head[0] >= LINES - 1 || head[1] == 0 || head[1] >= COLS - 1 )  
