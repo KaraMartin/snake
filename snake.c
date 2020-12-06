@@ -6,7 +6,7 @@
  * compile with '-lcurses'
  * 
  * Intermediate Deliverable Date:   11/23/2020
- * Final Deliverable Date:          12/04/2020
+ * Final Deliverable Date:          12/06/2020
  * 
  * Final Deliverable Functionality:
  * [✓] Snake Pit
@@ -55,7 +55,6 @@ void newTrophy();
 int main() {
     initscr();                                              // initialize the curses library
     clear();                                                // clear the screen
-    printf("%d LINES %d COLS", LINES, COLS);
     curs_set(0);                                            // hide the cursor
     noecho();                                               // do not echo the user input to the screen
     keypad(stdscr,TRUE);                                    // enables working with the arrow keys
@@ -65,9 +64,11 @@ int main() {
     int body[500][2] = {0};
     body[0][0] = LINES/2;
     body[0][1] = COLS/2;
+    int tail[2];
 
     length = 3;                                             // Starting length of snake
     winThreshold = LINES + COLS - 2;                        // Perimeter = LINES*2 + COLS*2 - 4 as corners are double counted
+
     int biggerTerminalSpeedBonus;
     if(COLS > 200)                                          // Max columns possible is 244, compensate for bigger windows
         biggerTerminalSpeedBonus = 50000;
@@ -94,6 +95,8 @@ int main() {
             body[1][1] = COLS/2;
             body[2][0] = (LINES/2) + 2;
             body[2][1] = COLS/2;
+            tail[0] = (LINES/2) + 3;
+            tail[1] = COLS/2;
             break;
         case 1:                                             // Down
             xdir = 1;
@@ -102,6 +105,8 @@ int main() {
             body[1][1] = COLS/2;
             body[2][0] = (LINES/2) - 2;
             body[2][1] = COLS/2;
+            tail[0] = (LINES/2) - 3;
+            tail[1] = COLS/2;
             break;
         case 2:                                             // Left
             xdir = 0;
@@ -110,6 +115,8 @@ int main() {
             body[1][1] = (COLS/2) + 1;
             body[2][0] = LINES/2;
             body[2][1] = (COLS/2) + 2;
+            tail[0] = LINES/2;
+            tail[1] = (COLS/2) + 3;
             break;
         case 3:                                             // Right, default
         default:
@@ -119,24 +126,22 @@ int main() {
             body[1][1] = (COLS/2) - 1;
             body[2][0] = LINES/2;
             body[2][1] = (COLS/2) - 2;
+            tail[0] = LINES/2;
+            tail[1] = (COLS/2) - 3;
             break;
     }
 
     while(alive) {                                          // Main game loop
-        erase();
         attron(COLOR_PAIR(1));                              // Print border
         border('|', '|', '-', '-', '*', '*', '*', '*'); 
         attroff(COLOR_PAIR(1));        
-        int ch = getch();
-
-        attron(COLOR_PAIR(3));                              // Print trophy
-        mvprintw(trophy[0], trophy[1], "%d", trophyValue);
-        attroff(COLOR_PAIR(3));       
+        int ch = getch();    
 
         attron(COLOR_PAIR(2));
-        for(int i = 1; i < length ; i++)                    // Printing the body 
-            mvprintw(body[i][0], body[i][1], "o");
-
+        mvprintw(tail[0], tail[1], " ");
+        mvprintw(body[1][0], body[1][1], "o");              // Printing the body 
+        mvprintw(body[2][0], body[2][1], "o");
+        
         mvprintw(head[0], head[1], "@");                    // Printing the head
         attroff(COLOR_PAIR(2));
 
@@ -183,6 +188,8 @@ int main() {
 
         head[0] += xdir;                                    // New snake head and body part positions
         head[1] += ydir;
+        tail[0] = body[length - 1][0];
+        tail[1] = body[length - 1][1];
 
         for(int i = length - 1; i > 0 ; i--)                // Snake body values
         {
@@ -206,16 +213,16 @@ int main() {
         refresh(); 
 
         if( xdir == 0 ) {                                   // Speed proportional to length
-            if( length <= 50 )                              // Moving left or right, speed should go from ~150k to ~50k (on small terminal)
+            if( length <= 50 )                              // Moving left or right, speed should go from ~150k to ~75k (on small terminal)
                 usleep(153000 - (length * 1000) - biggerTerminalSpeedBonus);           
             else
-                usleep(50000);
+                usleep(75000);
         }
         else if( ydir == 0 ) {                              // There's usually anywhere from 3-10x more columns than lines, so account for that
             if( length <= 50 )                              // Moving up or down, speed should go from ~225k to ~125k (on small terminal)
                 usleep(228000 - (length * 1000) - (2 * biggerTerminalSpeedBonus));           
             else
-                usleep(75000);
+                usleep(100000);
         }
 
         if( head[0] == 0 || head[0] >= LINES - 1 || head[1] == 0 || head[1] >= COLS - 1 )  
@@ -242,6 +249,7 @@ void endGame(char * exitMessage) {                          // Print centered me
 }
 
 void newTrophy() {                                          // Generate next trophy and set alarm for next one
+    mvprintw(trophy[0], trophy[1], " ");
     signal(SIGALRM, newTrophy);
     trophyValue = ( rand() % 9 ) + 1;                       // Generate a random number from 1-9 to determine trophy value
     int ch;
@@ -251,4 +259,7 @@ void newTrophy() {                                          // Generate next tro
         ch = mvinch(trophy[0], trophy[1]) & A_CHARTEXT;
     } while(ch == 111 || ch == 64);                         // Loop until the character at (t[0], t[1]) isn't 'o' or '@'
     alarm(trophyValue);
+    attron(COLOR_PAIR(3));                                  // Print trophy
+    mvprintw(trophy[0], trophy[1], "%d", trophyValue);
+    attroff(COLOR_PAIR(3)); 
 }
